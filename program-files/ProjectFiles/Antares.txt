@@ -1,0 +1,7 @@
+Target: Antares
+EL: 60
+IN: 7
+TF: 5
+ISO: 6
+Exposure Minutes: 0
+Exposure Goal: 120.0

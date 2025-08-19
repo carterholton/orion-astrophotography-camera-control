@@ -1,0 +1,7 @@
+Target: Orion
+EL: 8
+IN: 5
+TF: 5
+ISO: 6
+Exposure Minutes: 47.11
+Exposure Goal: 90.0
