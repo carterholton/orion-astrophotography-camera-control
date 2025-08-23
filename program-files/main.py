@@ -8,8 +8,8 @@ from camera import Camera
 from gpiozero import LED
 from joystick import Joystick
 import focuser
+
 joystick = Joystick()
-#from led_control import LED
 lcd = LCD()
 camera = Camera()
 led = LED(23)
@@ -42,6 +42,7 @@ iso = {
 7:6400,
 8:12800}
 
+# dbase is the common database shared between all functions and files. It contains 
 dbase = {"Target":"none", "EL":0, "IN":0, "TF":0, "ISO":0, "iso_key":5, "EC":0, "EG":0}
 
 def killgphoto2Process():
