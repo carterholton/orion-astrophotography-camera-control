@@ -1,7 +1,6 @@
 
 from rpi_lcd import LCD
 lcd = LCD()
-import readchar
 import time
 import serial
 from camera import Camera

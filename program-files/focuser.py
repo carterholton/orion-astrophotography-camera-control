@@ -1,5 +1,4 @@
 import os, subprocess
-import readchar
 import time
 from rpi_lcd import LCD
 lcd = LCD()
