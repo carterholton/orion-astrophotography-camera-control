@@ -20,6 +20,7 @@ line1 = "  __   __ .  _   _  "
 line2 = " |  | |   | | | | | "
 line3 = " |__| |   | |_| | | "
 
+"""
 end = -20
 for i in range(20):
     lcd.text(line1[:end], 1)
@@ -29,7 +30,7 @@ for i in range(20):
     time.sleep(0.0001)
 
 time.sleep(1)
-
+"""
 
 iso = {
 0:'AUTO',
@@ -99,7 +100,8 @@ def shutter_control():
     while active:
         print("control triggered")
         #print(TFi)
-        capture = subprocess.Popen([f"gphoto2 --set-config eosremoterelease=Immediate --wait-event={EL}s --set-config eosremoterelease='Release Full'"], stdout=subprocess.PIPE, shell = True, text = True)
+        capture = subprocess.Popen([f"gphoto2 --set-config eosremoterelease=Immediate --wait-event={EL - 1}s --set-config eosremoterelease='Release Full' --wait-event=1s"], stdout=subprocess.PIPE, shell = True, text = True)
+        #camera.open_shutter()
         TF = (TF - 1)
         Fnum = (Fnum + 1)
         time_rmng = round((IN * TF) / 60)
@@ -186,6 +188,9 @@ def shutter_control():
             lcd.text("Total EXP: " + str(round((TFi * EL) / 60)) + "min", 2)
             time.sleep(2)
             EL, IN, TF, mode = preprocess.run(dbase, lcd, joystick)
+            print(EL, IN, TF, mode)
+            TFi = TF
+            Fnum = 0
             if mode == "DONE":
                 break
 
@@ -210,7 +215,7 @@ def main():
     global dbase
     killgphoto2Process()
     dbase = init.run(joystick)
-    focuser.run(joystick)
+    #focuser.run(joystick)
     shutter_control()
 main()
 

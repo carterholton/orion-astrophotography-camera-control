@@ -1,3 +1,4 @@
+import time
 class Preprocess:
     def __init__(self):
         self.total_darks = 20
@@ -11,8 +12,10 @@ class Preprocess:
             pos = joystick.get_pos()
             if pos[0] == 'up':
                 lcd.clear()
-                lcd.text("Please Choose Option:", 1)
-                lcd.text("Capture Darks", 2)
+                lcd.text("Choose An Option:", 1)
+                lcd.text("UP) Capture Darks", 2)
+                joystick.clear_buffer()
+                time.sleep(1)
                 while True:
                     pos = joystick.get_pos()
                     if pos[0] == 'up':
@@ -21,7 +24,7 @@ class Preprocess:
                         IN = dbase["IN"]
                         TF = self.total_darks
                         mode = "DARKS"
-                        break
+                        return EL, IN, TF, mode
             if pos[0] == 'down':
                 mode = "DONE"
                 break
