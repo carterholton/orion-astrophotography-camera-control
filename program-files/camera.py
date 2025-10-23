@@ -3,10 +3,12 @@ import os, signal, subprocess
 class CameraError(Exception):
 	pass
 
+# This class is responsible for handling interfacing with the camera
 class Camera:
 	def __init__(self):
 		self.demo = False
 
+	# this function tests camera connection by sending an arbitrary command and waiting for a response. If the camera does not respond to this command, CameraError is raised and program is halted
 	def test(self):
 		try:
 			print("Testing connection...", end="")
@@ -24,6 +26,7 @@ class Camera:
 		except:
 			exit()
 
+	# Each function below sends a command to the camera using gphoto2
 	def open_shutter(self):
 		if not self.demo:
 			subprocess.call(['gphoto2', '--set-config', 'eosremoterelease=Immediate', '--wait-event=2s'])
@@ -31,7 +34,7 @@ class Camera:
 		else:
 			#print("demo shutter open")
                         duh = 0
-
+			
 	def close_shutter(self):
 		if not self.demo:
 			subprocess.call(['gphoto2 --set-config eosremoterelease="Release Full" --wait-event=2s'], shell = True)
@@ -39,7 +42,7 @@ class Camera:
 		else:
 			#print("demo shutter closed")
                         duh = 0
-
+			
 	def set_iso(self, iso_text):
 		if not self.demo:
 			subprocess.call(['gphoto2', '--set-config',  iso_text])
@@ -47,6 +50,7 @@ class Camera:
 			#print("demo set iso")
                         duh = 0
 
+	# This function retrieves the camera's current battery level and converts this value to a corresponding string which is returned to the main program
 	def battery_level(self):
 		if not self.demo:
 			battery_status = subprocess.run(['gphoto2', '--get-config=batterylevel'], capture_output = True, text = True)
