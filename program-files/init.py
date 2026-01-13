@@ -50,7 +50,7 @@ def system_check():
     lcd.clear()
     return 0
 
-def run(stick):
+def run(stick, log):
     global dbase
     global joystick
     joystick = stick
@@ -62,10 +62,21 @@ def run(stick):
     lcd.text("Smart Camera System ", 4)
     time.sleep(4)
     """
+    log.info("Starting system checks")
+    try:
+        system_check()
+    except Exception as e:
+        lcd.text("FATAL ERROR OCCURED!" , 4)
+        log.error(e, exc_info=True)
+        exit()
+    log.info("All system checks passed")
+    """
     if system_check() == 1:
         lcd.text("FATAL ERROR OCCURED!" , 4)
+        log.error()
         while True:
             val = 0
+    """
     lcd.text("      ORION CC      ",1)
     lcd.text("UP) Load Project    ",3)
     lcd.text("DN) Custom Shoot    ",4)

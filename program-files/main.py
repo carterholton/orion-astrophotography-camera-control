@@ -1,13 +1,33 @@
 import time
+import sys
 import os, signal, subprocess
 import init
 import serial
+import logging
 from rpi_lcd import LCD
 from camera import Camera
 from gpiozero import LED
 from joystick import Joystick
 import focuser
 import processing
+
+log = logging.getLogger("log")
+log.setLevel(logging.DEBUG)
+stdoutHandler = logging.StreamHandler(stream=sys.stdout)
+errHandler = logging.FileHandler("error.log")
+
+stdoutHandler.setLevel(logging.DEBUG)
+errHandler.setLevel(logging.ERROR)
+
+fmt = logging.Formatter("%(name)s: %(asctime)s | %(levelname)s | %(filename)s:%(lineno)s | %(process)d >>> %(message)s")
+
+stdoutHandler.setFormatter(fmt)
+errHandler.setFormatter(fmt)
+
+log.addHandler(stdoutHandler)
+log.addHandler(errHandler)
+
+log.info("Program started")
 
 joystick = Joystick()
 lcd = LCD()
@@ -98,17 +118,13 @@ def shutter_control():
             lcd.clear()
             main()
     while active:
-        print("control triggered")
-        #print(TFi)
-        capture = subprocess.Popen([f"gphoto2 --set-config eosremoterelease=Immediate --wait-event={EL - 1}s --set-config eosremoterelease='Release Full' --wait-event=1s"], stdout=subprocess.PIPE, shell = True, text = True)
-        #camera.open_shutter()
+        camera.capture_image(EL)
         TF = (TF - 1)
         Fnum = (Fnum + 1)
         time_rmng = round((IN * TF) / 60)
         percent = ((str(round(100 * (((TFi - TF) / TFi))))) + "%")
         progress = (((TFi - TF) / TFi) * 14)
         shots_left = (TFi - Fnum)
-        #print(progress)
         empty_progress = (14 - progress)
         bar_filled = ""
         bar_unfilled = ""
@@ -123,7 +139,7 @@ def shutter_control():
             p_bar_unfilled = (p_bar_unfilled + "-")
             empty_progress = (empty_progress - 1)
         lcd.text(percent + "[" + bar_filled + bar_unfilled + "]", 4)
-        print(percent + " [" + p_bar_filled*6 + p_bar_unfilled*6 + "]", end="\r")
+        #print(percent + " [" + p_bar_filled*6 + p_bar_unfilled*6 + "]", end="\r")
         status = get_status()
         status_label = status_id[status]
         if "0" in status:
@@ -160,7 +176,6 @@ def shutter_control():
                 led.on()
                 lcd.text("STATUS: ", 2)
                 i += 1
-        capture.communicate()
         led.off()
         time_left = round((TF * (EL + IN)) / 60)
         joystick.clear_buffer()
@@ -179,7 +194,7 @@ def shutter_control():
         if mode == "DARKS":
             lcd.text(">DARKS:" + str(time_left) + " min left<", 1)
         lcd.text("STATUS: " + status_label, 2)
-        print("STATUS: " + status_label + "  >> " + str(time_left) + " minutes remaining << ", end="\r")
+        #print("STATUS: " + status_label + "  >> " + str(time_left) + " minutes remaining << ", end="\r")
         time.sleep(IN - 2)
         update_file()
         if TF <= 0:
@@ -188,7 +203,6 @@ def shutter_control():
             lcd.text("Total EXP: " + str(round((TFi * EL) / 60)) + "min", 2)
             time.sleep(2)
             EL, IN, TF, mode = preprocess.run(dbase, lcd, joystick)
-            print(EL, IN, TF, mode)
             TFi = TF
             Fnum = 0
             if mode == "DONE":
@@ -214,9 +228,7 @@ def update_file():
 def main():
     global dbase
     killgphoto2Process()
-    dbase = init.run(joystick)
+    dbase = init.run(joystick, log)
     #focuser.run(joystick)
     shutter_control()
 main()
-
-
