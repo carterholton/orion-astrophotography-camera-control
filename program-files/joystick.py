@@ -3,22 +3,53 @@ import time
 
 class Joystick:
 
-    def __init__(self):
+    def __init__(self, lcd, log):
         # Initialize serial
-        print('Running. Press CTRL-C to exit.')
-        self.arduino = serial.Serial("/dev/ttyACM0", 9600, timeout=1)
-        time.sleep(0.1) #wait for serial to open
+        self.lcd = lcd
+        self.log = log
+
+    def connect(self):
+        # Initialize serial
+        self.lcd.clear()
+        self.lcd.text("[....] Input check", 1)
         connected = False
-        # Wait for Arduino to connect
-        while not connected:
-            if self.arduino.isOpen():
-                print("{} connected!".format(self.arduino.port))
-                connected = True
+        i = 12
+        err_msg = ""
+        while (connected == False) and (i > 0):
+            try:
+                self.arduino = serial.Serial("/dev/ttyACM0", 9600, timeout=1)
+                time.sleep(0.1)  # wait for serial to open
+                connected = False
+                # Wait for Arduino to connect
+                while not connected:
+                    if self.arduino.isOpen():
+                        print("{} connected!".format(self.arduino.port))
+                        connected = True
+                        break
+            except Exception as e:
+                err_msg = e
+                self.lcd.text("[ERR!] Input check", 1)
+                for j in range(10):
+                    self.lcd.text(f"Retrying in {10 - j}s...", 4)
+                    time.sleep(1)
+                i -= 1
+        if not connected:
+            self.lcd.text("[FAIL] Input check", 1)
+            self.lcd.text("FATAL ERROR OCCURRED", 4)
+            time.sleep(1)
+            self.log.error(err_msg, exc_info=True)
+            exit()
+        self.lcd.text("[PASS] Input check", 1)
+        self.lcd.text("", 4)
+
     def clear_buffer(self):
         self.arduino.reset_input_buffer()
 
     def get_pos(self):
-        data = self.arduino.readline()
+        try:
+            data = self.arduino.readline()
+        except:
+            self.connect()
         data = str(data)
         data = data.strip()
         #print(data)

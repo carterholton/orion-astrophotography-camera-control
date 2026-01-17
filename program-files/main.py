@@ -29,8 +29,9 @@ log.addHandler(errHandler)
 
 log.info("Program started")
 
-joystick = Joystick()
 lcd = LCD()
+joystick = Joystick(lcd, log)
+joystick.connect()
 camera = Camera()
 preprocess = processing.Preprocess()
 led = LED(23)

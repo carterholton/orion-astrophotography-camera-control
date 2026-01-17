@@ -28,3 +28,49 @@ Traceback (most recent call last):
   File "/home/carter/main/orion-astrophotography-camera-control/program-files/camera.py", line 22, in test
     raise CameraError("camera must properly connected and powered on")
 camera.CameraError: camera must properly connected and powered on
+log: 2026-01-16 16:13:42,383 | ERROR | init.py:70 | 1354 >>> camera must properly connected and powered on
+Traceback (most recent call last):
+  File "/home/carter/main/orion-astrophotography-camera-control/program-files/init.py", line 67, in run
+    system_check()
+  File "/home/carter/main/orion-astrophotography-camera-control/program-files/init.py", line 34, in system_check
+    result = camera.test()
+             ^^^^^^^^^^^^^
+  File "/home/carter/main/orion-astrophotography-camera-control/program-files/camera.py", line 22, in test
+    raise CameraError("camera must properly connected and powered on")
+camera.CameraError: camera must properly connected and powered on
+log: 2026-01-16 18:54:16,226 | ERROR | joystick.py:34 | 1541 >>> [Errno 2] could not open port /dev/ttyACM0: [Errno 2] No such file or directory: '/dev/ttyACM0'
+NoneType: None
+log: 2026-01-16 18:55:17,414 | ERROR | joystick.py:35 | 1542 >>> [Errno 2] could not open port /dev/ttyACM0: [Errno 2] No such file or directory: '/dev/ttyACM0'
+NoneType: None
+log: 2026-01-16 18:56:09,373 | ERROR | joystick.py:35 | 1544 >>> [Errno 2] could not open port /dev/ttyACM0: [Errno 2] No such file or directory: '/dev/ttyACM0'
+NoneType: None
+log: 2026-01-16 18:56:49,916 | ERROR | joystick.py:35 | 1549 >>> 
+NoneType: None
+log: 2026-01-16 19:00:35,673 | ERROR | init.py:48 | 1562 >>> 
+NoneType: None
+log: 2026-01-16 19:01:05,004 | ERROR | init.py:49 | 1570 >>> 
+NoneType: None
+log: 2026-01-16 19:01:31,023 | ERROR | init.py:49 | 1578 >>> 
+NoneType: None
+log: 2026-01-16 19:01:42,749 | ERROR | init.py:49 | 1588 >>> 
+NoneType: None
+log: 2026-01-16 19:04:05,086 | ERROR | init.py:52 | 1597 >>> 
+NoneType: None
+log: 2026-01-16 19:07:17,666 | ERROR | init.py:52 | 1614 >>> 
+NoneType: None
+log: 2026-01-16 22:29:17,970 | ERROR | joystick.py:40 | 1883 >>> [Errno 2] could not open port /dev/ttyACM0: [Errno 2] No such file or directory: '/dev/ttyACM0'
+Traceback (most recent call last):
+  File "/home/carter/main/orion-astrophotography-camera-control/program-files/joystick.py", line 50, in get_pos
+    data = self.arduino.readline()
+           ^^^^^^^^^^^^^^^^^^^^^^^
+  File "/home/carter/venv/lib/python3.11/site-packages/serial/serialposix.py", line 595, in read
+    raise SerialException(
+serial.serialutil.SerialException: device reports readiness to read but returned no data (device disconnected or multiple access on port?)
+log: 2026-01-16 22:33:35,125 | ERROR | joystick.py:41 | 1898 >>> [Errno 2] could not open port /dev/ttyACM0: [Errno 2] No such file or directory: '/dev/ttyACM0'
+NoneType: None
+log: 2026-01-16 22:34:39,556 | ERROR | joystick.py:40 | 1901 >>> [Errno 2] could not open port /dev/ttyACM0: [Errno 2] No such file or directory: '/dev/ttyACM0'
+NoneType: None
+log: 2026-01-16 22:35:25,137 | ERROR | joystick.py:40 | 1903 >>> [Errno 2] could not open port /dev/ttyACM0: [Errno 2] No such file or directory: '/dev/ttyACM0'
+NoneType: None
+log: 2026-01-16 22:36:01,180 | ERROR | joystick.py:40 | 1904 >>> [Errno 2] could not open port /dev/ttyACM0: [Errno 2] No such file or directory: '/dev/ttyACM0'
+NoneType: None

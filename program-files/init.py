@@ -22,33 +22,43 @@ iso_index = {
 7:6400,
 8:12800}
 
-def system_check():
+def system_check(log):
     global dbase
     global joystick
     lcd.clear()
-    lcd.text("[....] System check", 1)
+    lcd.text("[....] Input check", 1)
     time.sleep(1)
-    lcd.text("[PASS] System check", 1)
+    lcd.text("[PASS] Input check", 1)
     lcd.text("[....] Camera check", 2)
     time.sleep(1)
-    result = camera.test()
-    #result = 0
-    if result == 0:
-        lcd.text("[PASS] Camera check", 2)
-    else:
+    result = 1
+    err_msg = ""
+    i = 12
+    while (result == 1) and (i > 0):
+        try:
+            result = camera.test()
+            if result == 1:
+                raise Exception
+        except Exception as e:
+            err_msg = e
+            lcd.text("[ERR!] Camera check", 2)
+            for j in range(10):
+                lcd.text(f"Retrying in {10 - j}s...", 4)
+                time.sleep(1)
+        i -= 1
+    if result != 0:
         lcd.text("[FAIL] Camera check", 2)
-        return 1
-    lcd.text("[....] Input check", 3)
-    no_input = True
-    while no_input:
-        pos = joystick.get_pos()
-        if pos[1] == "0":
-            no_input = False
-    lcd.text("[PASS] Input check", 3)
+        lcd.text("FATAL ERROR OCCURRED", 4)
+        time.sleep(1)
+        log.error(err_msg, exc_info=True)
+        exit()
+    lcd.text("[PASS] Camera check", 2)
+    lcd.text("", 3)
+    lcd.text("", 4)
     lcd.text("ALL CHECKS PASSED!", 4)
     time.sleep(2)
     lcd.clear()
-    return 0
+
 
 def run(stick, log):
     global dbase
@@ -63,20 +73,9 @@ def run(stick, log):
     time.sleep(4)
     """
     log.info("Starting system checks")
-    try:
-        system_check()
-    except Exception as e:
-        lcd.text("FATAL ERROR OCCURED!" , 4)
-        log.error(e, exc_info=True)
-        exit()
+    system_check(log)
     log.info("All system checks passed")
-    """
-    if system_check() == 1:
-        lcd.text("FATAL ERROR OCCURED!" , 4)
-        log.error()
-        while True:
-            val = 0
-    """
+
     lcd.text("      ORION CC      ",1)
     lcd.text("UP) Load Project    ",3)
     lcd.text("DN) Custom Shoot    ",4)

@@ -10,17 +10,17 @@ class Camera:
 
 	# this function tests camera connection by sending an arbitrary command and waiting for a response. If the camera does not respond to this command, CameraError is raised and program is halted
 	def test(self):
-		print("Testing connection...", end="")
 		battery_status = subprocess.run(['gphoto2', '--get-config=batterylevel'], capture_output = True, text = True)
 		output = battery_status.stdout
 		level = (output.splitlines())[3].split(" ")
 		level = level[1]
 		if (level != "100%") and (level != "50%") and (level != "20%"):
-			print("ERROR")
-			print("Connection could not be established!\n")
-			print(output)
-			raise CameraError("camera must properly connected and powered on")
-		print("working")
+			#print("ERROR")
+			#print("Connection could not be established!\n")
+			#print(output)
+			#raise CameraError("camera must properly connected and powered on")
+		    #print("working")
+			return 1
 		return 0
 
 	# Each function below sends a command to the camera using gphoto2
