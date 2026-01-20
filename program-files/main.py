@@ -10,6 +10,7 @@ from gpiozero import LED
 from joystick import Joystick
 import focuser
 import processing
+from startup import Startup
 
 log = logging.getLogger("log")
 log.setLevel(logging.DEBUG)
@@ -31,8 +32,7 @@ log.info("Program started")
 
 lcd = LCD()
 joystick = Joystick(lcd, log)
-joystick.connect()
-camera = Camera()
+camera = Camera(lcd, log)
 preprocess = processing.Preprocess()
 led = LED(23)
 led.on()
@@ -48,7 +48,7 @@ for i in range(20):
     lcd.text(line2[:end], 2)
     lcd.text(line3[:end], 3)
     end += 1
-    time.sleep(0.0001)
+    time.sleep(0.00001)
 
 time.sleep(1)
 """
@@ -66,6 +66,8 @@ iso = {
 
 # dbase is the common database shared between all functions and files. It contains 
 dbase = {"Target":"none", "EL":0, "IN":0, "TF":0, "ISO":0, "iso_key":5, "EC":0, "EG":0}
+
+startup = Startup(dbase, log, joystick, camera)
 
 def killgphoto2Process():
 	p = subprocess.Popen(['ps', '-A'], stdout=subprocess.PIPE)
@@ -229,7 +231,8 @@ def update_file():
 def main():
     global dbase
     killgphoto2Process()
-    dbase = init.run(joystick, log)
+    #dbase = init.run(joystick, log)
+    dbase = startup.run()
     #focuser.run(joystick)
     shutter_control()
 main()

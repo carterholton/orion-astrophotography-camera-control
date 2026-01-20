@@ -1,4 +1,5 @@
 import serial
+from serial.tools import list_ports
 import time
 
 class Joystick:
@@ -7,6 +8,16 @@ class Joystick:
         # Initialize serial
         self.lcd = lcd
         self.log = log
+
+    def scan(self):
+        ports = list_ports.comports()
+        alive = False
+        for p in ports:
+            print(p)
+            if p != "":
+                return True
+        return False
+
 
     def connect(self):
         # Initialize serial

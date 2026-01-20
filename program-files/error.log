@@ -74,3 +74,5 @@ log: 2026-01-16 22:35:25,137 | ERROR | joystick.py:40 | 1903 >>> [Errno 2] could
 NoneType: None
 log: 2026-01-16 22:36:01,180 | ERROR | joystick.py:40 | 1904 >>> [Errno 2] could not open port /dev/ttyACM0: [Errno 2] No such file or directory: '/dev/ttyACM0'
 NoneType: None
+log: 2026-01-19 10:54:40,027 | ERROR | init.py:53 | 2839 >>> 
+NoneType: None

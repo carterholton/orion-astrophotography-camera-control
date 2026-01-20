@@ -2,12 +2,10 @@
 from rpi_lcd import LCD
 lcd = LCD()
 import time
-import serial
-from camera import Camera
-from joystick import Joystick
+#import serial
+#from camera import Camera
+#from joystick import Joystick
 import os
-camera = Camera()
-#joystick = Joystick()
 
 dbase = {"Target":"empty", "EL":0, "IN":0, "TF":0, "iso_key":5, "EC":0, "EG":0}
 
@@ -28,50 +26,34 @@ def system_check(log):
     lcd.clear()
     lcd.text("[....] Input check", 1)
     time.sleep(1)
-    lcd.text("[PASS] Input check", 1)
+    joystick.connect()
     lcd.text("[....] Camera check", 2)
     time.sleep(1)
-    result = 1
-    err_msg = ""
-    i = 12
-    while (result == 1) and (i > 0):
-        try:
-            result = camera.test()
-            if result == 1:
-                raise Exception
-        except Exception as e:
-            err_msg = e
-            lcd.text("[ERR!] Camera check", 2)
-            for j in range(10):
-                lcd.text(f"Retrying in {10 - j}s...", 4)
-                time.sleep(1)
-        i -= 1
-    if result != 0:
-        lcd.text("[FAIL] Camera check", 2)
-        lcd.text("FATAL ERROR OCCURRED", 4)
-        time.sleep(1)
-        log.error(err_msg, exc_info=True)
-        exit()
-    lcd.text("[PASS] Camera check", 2)
+    camera.connect()
     lcd.text("", 3)
     lcd.text("", 4)
     lcd.text("ALL CHECKS PASSED!", 4)
     time.sleep(2)
     lcd.clear()
 
-
 def run(stick, log):
     global dbase
     global joystick
     joystick = stick
-    """
+    
     lcd.text("Smart", 4)
-    time.sleep(1)
+    time.sleep(0.5)
     lcd.text("Smart Camera", 4)
-    time.sleep(1)
+    time.sleep(0.5)
     lcd.text("Smart Camera System ", 4)
     time.sleep(4)
-    """
+    lcd.text("Waiting on input...", 4)
+    alive = False
+    while not alive:
+        alive = joystick.scan()
+        print(alive)
+        time.sleep(5)
+    
     log.info("Starting system checks")
     system_check(log)
     log.info("All system checks passed")
