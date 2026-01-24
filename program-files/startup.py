@@ -5,7 +5,8 @@ import os
 
 class Startup:
 
-    def __init__(self, dbase, log, joystick, camera):
+    def __init__(self, Display, dbase, log, joystick, camera):
+        self.Display = Display
         self.dbase = dbase
         self.log = log
         self.joystick = joystick
@@ -36,7 +37,8 @@ class Startup:
         lcd.clear()
 
     def run(self):
-        #lcd = lcd
+        self.Display.boot_screen()
+        time.sleep(1)
         lcd.text("Smart", 4)
         time.sleep(0.5)
         lcd.text("Smart Camera", 4)

@@ -11,6 +11,7 @@ from joystick import Joystick
 import focuser
 import processing
 from startup import Startup
+from lcd_tools import Display
 
 log = logging.getLogger("log")
 log.setLevel(logging.DEBUG)
@@ -37,22 +38,6 @@ preprocess = processing.Preprocess()
 led = LED(23)
 led.on()
 
-line1 = "  __   __ .  _   _  "
-line2 = " |  | |   | | | | | "
-line3 = " |__| |   | |_| | | "
-
-"""
-end = -20
-for i in range(20):
-    lcd.text(line1[:end], 1)
-    lcd.text(line2[:end], 2)
-    lcd.text(line3[:end], 3)
-    end += 1
-    time.sleep(0.00001)
-
-time.sleep(1)
-"""
-
 iso = {
 0:'AUTO',
 1:100,
@@ -67,7 +52,8 @@ iso = {
 # dbase is the common database shared between all functions and files. It contains 
 dbase = {"Target":"none", "EL":0, "IN":0, "TF":0, "ISO":0, "iso_key":5, "EC":0, "EG":0}
 
-startup = Startup(dbase, log, joystick, camera)
+Display = Display()
+startup = Startup(Display, dbase, log, joystick, camera)
 
 def killgphoto2Process():
 	p = subprocess.Popen(['ps', '-A'], stdout=subprocess.PIPE)
@@ -105,13 +91,10 @@ def shutter_control():
     Fnum = 0
     active = True
     mode = "LIGHTS"
-    lcd.clear()
     ready = False
     iso_text = 'iso=' + str(dbase["iso_key"])
     camera.set_iso(iso_text)
-    lcd.text(">SYSTEM READY<", 1)
-    lcd.text("Press 'UP' to begin", 2)
-    lcd.text("Press 'DWN' to reboot", 4)
+    Display.static_menu("start")
     while not ready:
         pos = joystick.get_pos()
         if pos[0] == 'up' and pos[1] == '0':
@@ -121,30 +104,16 @@ def shutter_control():
             lcd.clear()
             main()
     while active:
+        time_left = round((TF * (EL + IN)) / 60)
         camera.capture_image(EL)
         TF = (TF - 1)
         Fnum = (Fnum + 1)
         time_rmng = round((IN * TF) / 60)
-        percent = ((str(round(100 * (((TFi - TF) / TFi))))) + "%")
-        progress = (((TFi - TF) / TFi) * 14)
-        shots_left = (TFi - Fnum)
-        empty_progress = (14 - progress)
-        bar_filled = ""
-        bar_unfilled = ""
-        p_bar_filled = ""
-        p_bar_unfilled = ""
-        while progress > 0:
-            bar_filled = (bar_filled + "*")
-            p_bar_filled = (p_bar_filled + "█")
-            progress = (progress - 1)
-        while empty_progress > 0:
-            bar_unfilled = (bar_unfilled + " ")
-            p_bar_unfilled = (p_bar_unfilled + "-")
-            empty_progress = (empty_progress - 1)
-        lcd.text(percent + "[" + bar_filled + bar_unfilled + "]", 4)
-        #print(percent + " [" + p_bar_filled*6 + p_bar_unfilled*6 + "]", end="\r")
+        time_left = round((TF * (EL + IN)) / 60)
+        Display.progress_bar(TF, TFi, Fnum)
         status = get_status()
-        status_label = status_id[status]
+        status_label = status_id[status]     
+        # Consider moving this to the camera class for simplicity
         if "0" in status:
             wait_val = (EL/2) - 1
             i = 0
@@ -185,25 +154,16 @@ def shutter_control():
         pos = joystick.get_pos()
         print(pos[0])
         if pos[0] == 'down':
-            lcd.clear()
-            lcd.text("   SHOOTING PAUSED   ", 2)
-            lcd.text("   >UP to resume<    ", 3)
+            Display.static_menu("paused")
             stick = joystick.get_pos()[0]
             while stick != 'up':
                 stick = joystick.get_pos()[0]
             lcd.clear()
-        if mode == "LIGHTS":
-            lcd.text(">ACTIVE:" + str(time_left) + " min left<", 1)
-        if mode == "DARKS":
-            lcd.text(">DARKS:" + str(time_left) + " min left<", 1)
-        lcd.text("STATUS: " + status_label, 2)
-        #print("STATUS: " + status_label + "  >> " + str(time_left) + " minutes remaining << ", end="\r")
+        Display.time_status_bar(mode, time_left, status_label)
         time.sleep(IN - 2)
         update_file()
         if TF <= 0:
-            lcd.clear()
-            lcd.text("Captured " + str(Fnum) + " Photos!", 1)
-            lcd.text("Total EXP: " + str(round((TFi * EL) / 60)) + "min", 2)
+            Display.static_menu("finished", Fnum, TFi, EL)
             time.sleep(2)
             EL, IN, TF, mode = preprocess.run(dbase, lcd, joystick)
             TFi = TF
