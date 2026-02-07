@@ -4,6 +4,7 @@ import os, signal, subprocess
 import init
 import serial
 import logging
+import threading
 from rpi_lcd import LCD
 from camera import Camera
 from gpiozero import LED
@@ -11,7 +12,7 @@ from joystick import Joystick
 import focuser
 import processing
 from startup import Startup
-from lcd_tools import Display
+from lcd_tools import Display, DynamicMenu
 
 log = logging.getLogger("log")
 log.setLevel(logging.DEBUG)
@@ -103,19 +104,34 @@ def shutter_control():
         if pos[0] == 'down' and pos[1] == '0':
             lcd.clear()
             main()
+            shot_time = EL + IN
     while active:
-        time_left = round((TF * (EL + IN)) / 60)
-        camera.capture_image(EL)
+        camera.capture_image(EL, IN)
         TF = (TF - 1)
         Fnum = (Fnum + 1)
         time_rmng = round((IN * TF) / 60)
-        time_left = round((TF * (EL + IN)) / 60)
-        Display.progress_bar(TF, TFi, Fnum)
+        percent = ((str(round(100 * (((TFi - TF) / TFi))))) + "%")
+        progress = (((TFi - TF) / TFi) * 14)
+        shots_left = (TFi - Fnum)
+        empty_progress = (14 - progress)
+        bar_filled = ""
+        bar_unfilled = ""
+        p_bar_filled = ""
+        p_bar_unfilled = ""
+        while progress > 0:
+            bar_filled = (bar_filled + "*")
+            p_bar_filled = (p_bar_filled + "█")
+            progress = (progress - 1)
+        while empty_progress > 0:
+            bar_unfilled = (bar_unfilled + " ")
+            p_bar_unfilled = (p_bar_unfilled + "-")
+            empty_progress = (empty_progress - 1)
+        lcd.text(percent + "[" + bar_filled + bar_unfilled + "]", 4)
+        # print(percent + " [" + p_bar_filled*6 + p_bar_unfilled*6 + "]", end="\r")
         status = get_status()
-        status_label = status_id[status]     
-        # Consider moving this to the camera class for simplicity
+        status_label = status_id[status]
         if "0" in status:
-            wait_val = (EL/2) - 1
+            wait_val = (EL / 2) - 1
             i = 0
             led.on()
             while i < wait_val:
@@ -154,16 +170,25 @@ def shutter_control():
         pos = joystick.get_pos()
         print(pos[0])
         if pos[0] == 'down':
-            Display.static_menu("paused")
+            lcd.clear()
+            lcd.text("   SHOOTING PAUSED   ", 2)
+            lcd.text("   >UP to resume<    ", 3)
             stick = joystick.get_pos()[0]
             while stick != 'up':
                 stick = joystick.get_pos()[0]
             lcd.clear()
-        Display.time_status_bar(mode, time_left, status_label)
+        if mode == "LIGHTS":
+            lcd.text(">ACTIVE:" + str(time_left) + " min left<", 1)
+        if mode == "DARKS":
+            lcd.text(">DARKS:" + str(time_left) + " min left<", 1)
+        lcd.text("STATUS: " + status_label, 2)
+        # print("STATUS: " + status_label + "  >> " + str(time_left) + " minutes remaining << ", end="\r")
         time.sleep(IN - 2)
         update_file()
         if TF <= 0:
-            Display.static_menu("finished", Fnum, TFi, EL)
+            lcd.clear()
+            lcd.text("Captured " + str(Fnum) + " Photos!", 1)
+            lcd.text("Total EXP: " + str(round((TFi * EL) / 60)) + "min", 2)
             time.sleep(2)
             EL, IN, TF, mode = preprocess.run(dbase, lcd, joystick)
             TFi = TF

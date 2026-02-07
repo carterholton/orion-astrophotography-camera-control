@@ -106,6 +106,7 @@ class Startup:
         project = "ProjectFiles/" + file_list[proj_index - 1]
         with open(project, 'r') as file:
             lines = file.readlines()
+            print(lines)
             target = (lines[0].split(': ', 1)[1]).strip()
             EL = (lines[1].split(': ', 1)[1]).strip()
             IN = (lines[2].split(': ', 1)[1]).strip()

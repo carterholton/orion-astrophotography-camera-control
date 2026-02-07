@@ -58,9 +58,11 @@ class Camera:
 			#print("demo shutter open")
                         duh = 0
 
-	def capture_image(self, EL):
+	def capture_image(self, EL, IN):
 		if not self.demo:
-			capture = subprocess.Popen([f"gphoto2 --set-config eosremoterelease=Immediate --wait-event={EL - 1}s --set-config eosremoterelease='Release Full' --wait-event=1s"], stdout=subprocess.PIPE, shell = True, text = True)
+			capture = subprocess.Popen([f"gphoto2 --set-config eosremoterelease=Immediate --wait-event={EL - 1}s --set-config eosremoterelease='Release Full' --wait-event=1s"], stdout=subprocess.PIPE, shell=True, text=True)
+			#capture = subprocess.call([f"gphoto2 --set-config eosremoterelease=Immediate --wait-event={EL - 1}s --set-config eosremoterelease='Release Full' --wait-event=1s"], stdout=subprocess.PIPE, shell = True, text = True)
+			#time.sleep(IN)
 			
 	def close_shutter(self):
 		if not self.demo:
