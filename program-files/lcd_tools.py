@@ -4,6 +4,8 @@ import os, signal, subprocess
 import queue
 from rpi_lcd import LCD
 from gpiozero import LED
+import shared_state
+print("shared_state id:", id(shared_state))
 lcd = LCD()
 
 class Display:
@@ -87,8 +89,8 @@ class Display:
             time.sleep(speed)
 
 class DynamicMenu():
-    def __init__(self, joystick, menu_queue, menu_stop, menu_items, submenu_items):
-        self.joystick = joystick
+    def __init__(self, menu_queue, menu_stop, menu_items, submenu_items):
+        #self.joystick = joystick
         self.title = "Options"
         self.header = self.title
         self.menu_queue = menu_queue
@@ -213,23 +215,25 @@ class DynamicMenu():
         self.show_menu()
         state = "none"
         while state == 'none':
-            pos = self.joystick.get_pos()
+            joystick = shared_state.get_joystick_state()
+            pos = [joystick["pos"], joystick["button"]]
             while (pos == ['center', '1']) and (state == 'none'):
-                pos = self.joystick.get_pos()
-                self.joystick.clear_buffer()
+                joystick = shared_state.get_joystick_state()
+                pos = [joystick["pos"], joystick["button"]]
                 state = self.update_menu(pos)
                 if self.menu_stop.is_set():
                     return
-        self.menu_queue.put(state)
+        shared_state.set_menu_state(state)
         return True
 
     def run(self):
         while not self.menu_stop.is_set():
             pos = ['center', '1']
             while not pos == ['left', '0']:
-                pos = self.joystick.get_pos()
-                self.joystick.clear_buffer()
+                #pos = self.joystick.get_pos()
+                joystick = shared_state.get_joystick_state()
+                pos = [joystick["pos"], joystick["button"]]
                 if self.menu_stop.is_set():
                     return
-            self.menu_queue.put("active")
+            shared_state.set_menu_state("state")
             status = self.open()

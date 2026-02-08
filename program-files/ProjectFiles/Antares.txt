@@ -3,5 +3,5 @@ EL: 10
 IN: 7
 TF: 5
 ISO: 5
-Exposure Minutes: 0.34
+Exposure Minutes: 0.51
 Exposure Goal: 120.0

@@ -15,6 +15,8 @@ import processing
 from startup import Startup
 from lcd_tools import Display, DynamicMenu
 from led_tools import Led
+import shared_state
+print("shared_state id:", id(shared_state))
 
 log = logging.getLogger("log")
 log.setLevel(logging.DEBUG)
@@ -35,7 +37,8 @@ log.addHandler(errHandler)
 log.info("Program started")
 
 lcd = LCD()
-joystick = Joystick(lcd, log)
+joystick_stop = threading.Event()
+joystick = Joystick(lcd, log, joystick_stop)
 camera = Camera(lcd, log)
 preprocess = processing.Preprocess()
 led = LED(23)
@@ -87,6 +90,8 @@ def lcd_update():
 
 def shutter_control():
     global dbase
+    lcd.clear()
+    lcd.text("Please wait...", 1)
     time.sleep(1)
     status_id = {"0":"NORMAL", "1a":"BATT LOW", "1b":"DEW POINT", "2a":"BATT DEAD", "2b":"DEW POINT", "2c":"PICO SIGNAL LOST", "3a":"SIGNAL LOST", "3b":"FATAL ERROR"}
     TF = dbase["TF"]
@@ -102,13 +107,13 @@ def shutter_control():
     iso_text = 'iso=' + str(dbase["iso_key"])
     camera.set_iso(iso_text)
     Display.static_menu("start")
-    menu = DynamicMenu(joystick,
-                                 menu_queue,
+    menu = DynamicMenu(menu_queue,
                                  menu_stop,
                                  menu_items=["Option 0", "Option 1", "Option 2"],
                                  submenu_items=[["Sub0 Op0", "Sub0 Op1"], ["Sub1 Op0", "Sub1 Op1", "Sub1 Op2"], []]
                                  )
     menu_thread = threading.Thread(target=menu.run)
+    joystick_thread = threading.Thread(target=joystick.run, daemon=True)
 
     while not ready:
         pos = joystick.get_pos()
@@ -120,8 +125,10 @@ def shutter_control():
             main()
     menu_thread.start()
     menu_active = False
+    joystick_thread.start()
 
     while active:
+        time_left = round((TF * (EL + IN)) / 60)
         start_time = time.perf_counter()
         elapsed_time = 0
         TF = (TF - 1)
@@ -134,17 +141,23 @@ def shutter_control():
         camera.capture_image(EL, IN)
         status_light = threading.Thread(target=Led.status_light, args=("0", EL), daemon=True)
         status_light.start()
-        while elapsed_time < EL:
+        refresh = True
+        while elapsed_time < (EL + IN):
             elapsed_time = time.perf_counter() - start_time
-            try:
-                value = menu_queue.get_nowait()
-                print("Got:", value)
-            except queue.Empty:
-                value = ""
+            value = shared_state.get_menu_state()
             if value == "active":
                 menu_active = True
+            if value == "exit":
+                refresh = True
             elif value != "":
                 menu_active = False
+            if (not menu_active) and refresh:
+                lcd.clear()
+                Display.time_status_bar(mode, time_left, status_label)
+                Display.progress_bar(TF, TFi, Fnum, line=4)
+                refresh = False
+            time.sleep(0.001)
+
         """
         if pos[0] == 'down':
             lcd.clear()
@@ -161,7 +174,6 @@ def shutter_control():
         lcd.text("STATUS: " + status_label, 2)
         # print("STATUS: " + status_label + "  >> " + str(time_left) + " minutes remaining << ", end="\r")
         """
-        time.sleep(IN)
         led_stop.set()
         status_light.join()
         led_stop.clear()

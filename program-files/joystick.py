@@ -1,13 +1,16 @@
 import serial
 from serial.tools import list_ports
 import time
+import shared_state
+print("shared_state id:", id(shared_state))
 
 class Joystick:
 
-    def __init__(self, lcd, log):
+    def __init__(self, lcd, log, joystick_stop):
         # Initialize serial
         self.lcd = lcd
         self.log = log
+        self.joystick_stop = joystick_stop
 
     def scan(self):
         ports = list_ports.comports()
@@ -56,7 +59,11 @@ class Joystick:
     def clear_buffer(self):
         self.arduino.reset_input_buffer()
 
-    def get_pos(self):
+    def get_pos(self, clear_buffer=True):
+        DEADLOW = 400
+        DEADHIGH = 600
+        if clear_buffer:
+            self.clear_buffer()
         data = ""
         try:
             data = self.arduino.readline()
@@ -64,19 +71,16 @@ class Joystick:
             self.connect()
         data = str(data)
         data = data.strip()
-        #print(data)
+        if "x =" not in data or "y =" not in data or "button" not in data:
+            return ["center", 1]
         list = data.split(":")
-        x = 487
-        y = 497
-        button = 0
-        pos = "center"
         try:
             button = list[1].strip()
             button = button.split("= ")
             button = button[1]
             button = button[:-5]
         except:
-            i = 1
+            return ["center", 1]
         list = list[0].split(",")
         try:
             x_list = list[0]
@@ -84,21 +88,34 @@ class Joystick:
             x_list = x_list.split("= ")
             x = int(x_list[1])
         except:
-            i = 1
+            return ["center", 1]
         try:
             y_list = list[1]
             y_list = y_list.strip()
             y_list = y_list.split("= ")
             y = int(y_list[1])
         except:
-            i = 1
-        if x < 400:
+            return ["center", 1]
+        print("x =", x, ", y =", y)
+        if 400 < x < 600 and 400 < y < 600:
+            pos = "center"
+        elif x < 400:
             pos = "left"
-        if x > 550:
+        elif x > 600:
             pos = "right"
-        if y < 400:
+        elif y < 400:
             pos = "up"
-        if y > 550:
+        elif y > 600:
             pos = "down"
+        else:
+            pos = "center"
         return [pos, button]
-        #print(pos + " " + str(button))
+
+    def run(self):
+        while not self.joystick_stop.is_set():
+            try:
+                data = self.get_pos()
+                shared_state.set_joystick_state(data[0], data[1])
+                time.sleep(0.001)
+            except Exception as e:
+                print(e)
