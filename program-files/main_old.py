@@ -4,16 +4,12 @@ import os, signal, subprocess
 import init
 import serial
 import logging
-import threading
 from rpi_lcd import LCD
 from camera import Camera
 from gpiozero import LED
 from joystick import Joystick
 import focuser
 import processing
-from startup import Startup
-from lcd_tools import Display, DynamicMenu
-from led_tools import Led
 
 log = logging.getLogger("log")
 log.setLevel(logging.DEBUG)
@@ -33,14 +29,28 @@ log.addHandler(errHandler)
 
 log.info("Program started")
 
+joystick = Joystick()
 lcd = LCD()
-joystick = Joystick(lcd, log)
-camera = Camera(lcd, log)
+camera = Camera()
 preprocess = processing.Preprocess()
 led = LED(23)
-led_stop = threading.Event()
-Led = Led(led, led_stop)
 led.on()
+
+line1 = "  __   __ .  _   _  "
+line2 = " |  | |   | | | | | "
+line3 = " |__| |   | |_| | | "
+
+"""
+end = -20
+for i in range(20):
+    lcd.text(line1[:end], 1)
+    lcd.text(line2[:end], 2)
+    lcd.text(line3[:end], 3)
+    end += 1
+    time.sleep(0.0001)
+
+time.sleep(1)
+"""
 
 iso = {
 0:'AUTO',
@@ -55,10 +65,6 @@ iso = {
 
 # dbase is the common database shared between all functions and files. It contains 
 dbase = {"Target":"none", "EL":0, "IN":0, "TF":0, "ISO":0, "iso_key":5, "EC":0, "EG":0}
-
-Display = Display()
-menu_queue = queue.Queue()
-startup = Startup(Display, dbase, log, joystick, camera)
 
 def killgphoto2Process():
 	p = subprocess.Popen(['ps', '-A'], stdout=subprocess.PIPE)
@@ -96,16 +102,13 @@ def shutter_control():
     Fnum = 0
     active = True
     mode = "LIGHTS"
+    lcd.clear()
     ready = False
     iso_text = 'iso=' + str(dbase["iso_key"])
     camera.set_iso(iso_text)
-    Display.static_menu("start")
-    menu = lcd_tools.DynamicMenu(joystick,
-                                 menu_queue,
-                                 menu_items=["Option 0", "Option 1", "Option 2"],
-                                 submenu_items=[["Sub0 Op0", "Sub0 Op1"], ["Sub1 Op0", "Sub1 Op1", "Sub1 Op2"], []]
-                                 )
-
+    lcd.text(">SYSTEM READY<", 1)
+    lcd.text("Press 'UP' to begin", 2)
+    lcd.text("Press 'DWN' to reboot", 4)
     while not ready:
         pos = joystick.get_pos()
         if pos[0] == 'up' and pos[1] == '0':
@@ -114,24 +117,33 @@ def shutter_control():
         if pos[0] == 'down' and pos[1] == '0':
             lcd.clear()
             main()
-
     while active:
-        start_time = time.perf_counter()
-        elapsed_time = 0
+        camera.capture_image(EL)
         TF = (TF - 1)
         Fnum = (Fnum + 1)
-        Display.progress_bar(TF, TFi, Fnum, line=4)
+        time_rmng = round((IN * TF) / 60)
+        percent = ((str(round(100 * (((TFi - TF) / TFi))))) + "%")
+        progress = (((TFi - TF) / TFi) * 14)
+        shots_left = (TFi - Fnum)
+        empty_progress = (14 - progress)
+        bar_filled = ""
+        bar_unfilled = ""
+        p_bar_filled = ""
+        p_bar_unfilled = ""
+        while progress > 0:
+            bar_filled = (bar_filled + "*")
+            p_bar_filled = (p_bar_filled + "█")
+            progress = (progress - 1)
+        while empty_progress > 0:
+            bar_unfilled = (bar_unfilled + " ")
+            p_bar_unfilled = (p_bar_unfilled + "-")
+            empty_progress = (empty_progress - 1)
+        lcd.text(percent + "[" + bar_filled + bar_unfilled + "]", 4)
+        #print(percent + " [" + p_bar_filled*6 + p_bar_unfilled*6 + "]", end="\r")
         status = get_status()
         status_label = status_id[status]
-        camera.capture_image(EL, IN)
-        status_light = threading.Thread(target=Led.status_light, args=("0", EL), daemon=True)
-        status_light.start()
-        while elapsed_time < EL:
-            print("running...")
-            elapsed_time = time.perf_counter() - start_time
-        """
         if "0" in status:
-            wait_val = (EL / 2) - 1
+            wait_val = (EL/2) - 1
             i = 0
             led.on()
             while i < wait_val:
@@ -182,12 +194,8 @@ def shutter_control():
         if mode == "DARKS":
             lcd.text(">DARKS:" + str(time_left) + " min left<", 1)
         lcd.text("STATUS: " + status_label, 2)
-        # print("STATUS: " + status_label + "  >> " + str(time_left) + " minutes remaining << ", end="\r")
-        """
-        time.sleep(IN)
-        led_stop.set()
-        status_light.join()
-        led_stop.clear()
+        #print("STATUS: " + status_label + "  >> " + str(time_left) + " minutes remaining << ", end="\r")
+        time.sleep(IN - 2)
         update_file()
         if TF <= 0:
             lcd.clear()
@@ -220,8 +228,7 @@ def update_file():
 def main():
     global dbase
     killgphoto2Process()
-    #dbase = init.run(joystick, log)
-    dbase = startup.run()
+    dbase = init.run(joystick, log)
     #focuser.run(joystick)
     shutter_control()
 main()
