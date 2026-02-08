@@ -57,6 +57,7 @@ class Joystick:
         self.arduino.reset_input_buffer()
 
     def get_pos(self):
+        data = ""
         try:
             data = self.arduino.readline()
         except:

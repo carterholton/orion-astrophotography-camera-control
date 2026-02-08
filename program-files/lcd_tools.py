@@ -1,6 +1,7 @@
 import time
 import sys
 import os, signal, subprocess
+import queue
 from rpi_lcd import LCD
 from gpiozero import LED
 lcd = LCD()
@@ -86,10 +87,12 @@ class Display:
             time.sleep(speed)
 
 class DynamicMenu():
-    def __init__(self, joystick, menu_items, submenu_items):
+    def __init__(self, joystick, menu_queue, menu_stop, menu_items, submenu_items):
         self.joystick = joystick
         self.title = "Options"
         self.header = self.title
+        self.menu_queue = menu_queue
+        self.menu_stop = menu_stop
         self.menu_items = menu_items
         self.submenu_items = submenu_items
         self.parent_index = 0
@@ -97,6 +100,7 @@ class DynamicMenu():
         self.child_index = 0
         self.child_sizes = [len(self.submenu_items[0]), len(self.submenu_items[1]), len(self.submenu_items[2])]
         self.level = 0
+        self.menu_queue = menu_queue
 
     def show_menu(self):
         lcd.clear()
@@ -120,27 +124,27 @@ class DynamicMenu():
 
     def next_parent(self):
         self.parent_index = (self.parent_index + 1) % (self.parent_size + 1)
-        print("parent:", self.parent_index)
+        #("parent:", self.parent_index)
         self.show_menu()
         return "none"
 
     def prev_parent(self):
         self.parent_index = (self.parent_index - 1) % (self.parent_size + 1)
-        print("parent:", self.parent_index)
+        #print("parent:", self.parent_index)
         self.show_menu()
         return "none"
 
     def next_child(self):
         max_child = self.child_sizes[self.parent_index] + 1
         self.child_index = (self.child_index + 1) % max_child
-        print("child:", self.child_index)
+        #print("child:", self.child_index)
         self.show_submenu()
         return "none"
 
     def prev_child(self):
         max_child = self.child_sizes[self.parent_index] + 1
         self.child_index = (self.child_index - 1) % max_child
-        print("child:", self.child_index)
+        #print("child:", self.child_index)
         self.show_submenu()
         return "none"
 
@@ -173,7 +177,7 @@ class DynamicMenu():
 
 
     def update_menu(self, pos):
-        print(self.level)
+        #print(self.level)
         state = "none"
         if pos[1] == '0':
             state = self.forward()
@@ -214,4 +218,18 @@ class DynamicMenu():
                 pos = self.joystick.get_pos()
                 self.joystick.clear_buffer()
                 state = self.update_menu(pos)
-        return state
+                if self.menu_stop.is_set():
+                    return
+        self.menu_queue.put(state)
+        return True
+
+    def run(self):
+        while not self.menu_stop.is_set():
+            pos = ['center', '1']
+            while not pos == ['left', '0']:
+                pos = self.joystick.get_pos()
+                self.joystick.clear_buffer()
+                if self.menu_stop.is_set():
+                    return
+            self.menu_queue.put("active")
+            status = self.open()

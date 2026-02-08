@@ -5,6 +5,7 @@ import init
 import serial
 import logging
 import threading
+import queue
 from rpi_lcd import LCD
 from camera import Camera
 from gpiozero import LED
@@ -39,6 +40,7 @@ camera = Camera(lcd, log)
 preprocess = processing.Preprocess()
 led = LED(23)
 led_stop = threading.Event()
+menu_stop = threading.Event()
 Led = Led(led, led_stop)
 led.on()
 
@@ -100,11 +102,13 @@ def shutter_control():
     iso_text = 'iso=' + str(dbase["iso_key"])
     camera.set_iso(iso_text)
     Display.static_menu("start")
-    menu = lcd_tools.DynamicMenu(joystick,
+    menu = DynamicMenu(joystick,
                                  menu_queue,
+                                 menu_stop,
                                  menu_items=["Option 0", "Option 1", "Option 2"],
                                  submenu_items=[["Sub0 Op0", "Sub0 Op1"], ["Sub1 Op0", "Sub1 Op1", "Sub1 Op2"], []]
                                  )
+    menu_thread = threading.Thread(target=menu.run)
 
     while not ready:
         pos = joystick.get_pos()
@@ -114,61 +118,34 @@ def shutter_control():
         if pos[0] == 'down' and pos[1] == '0':
             lcd.clear()
             main()
+    menu_thread.start()
+    menu_active = False
 
     while active:
         start_time = time.perf_counter()
         elapsed_time = 0
         TF = (TF - 1)
         Fnum = (Fnum + 1)
-        Display.progress_bar(TF, TFi, Fnum, line=4)
+        if not menu_active:
+            lcd.clear()
+            Display.progress_bar(TF, TFi, Fnum, line=4)
         status = get_status()
         status_label = status_id[status]
         camera.capture_image(EL, IN)
         status_light = threading.Thread(target=Led.status_light, args=("0", EL), daemon=True)
         status_light.start()
         while elapsed_time < EL:
-            print("running...")
             elapsed_time = time.perf_counter() - start_time
+            try:
+                value = menu_queue.get_nowait()
+                print("Got:", value)
+            except queue.Empty:
+                value = ""
+            if value == "active":
+                menu_active = True
+            elif value != "":
+                menu_active = False
         """
-        if "0" in status:
-            wait_val = (EL / 2) - 1
-            i = 0
-            led.on()
-            while i < wait_val:
-                lcd.text("STATUS: " + status_label, 2)
-                time.sleep(2)
-                i += 1
-        elif "1" in status:
-            i = 0
-            while i < wait_val:
-                time.sleep(1)
-                led.off()
-                lcd.text("STATUS: " + status_label, 2)
-                time.sleep(1)
-                led.on()
-                lcd.text("STATUS: ", 2)
-                i += 1
-        elif "2" in status:
-            i = 0
-            while i < wait_val:
-                time.sleep(0.5)
-                led.off()
-                lcd.text("STATUS: " + status_label, 2)
-                time.sleep(0.5)
-                led.on()
-                lcd.text("STATUS: ", 2)
-                time.sleep(0.5)
-                led.off()
-                lcd.text("STATUS: " + status_label, 2)
-                time.sleep(0.5)
-                led.on()
-                lcd.text("STATUS: ", 2)
-                i += 1
-        led.off()
-        time_left = round((TF * (EL + IN)) / 60)
-        joystick.clear_buffer()
-        pos = joystick.get_pos()
-        print(pos[0])
         if pos[0] == 'down':
             lcd.clear()
             lcd.text("   SHOOTING PAUSED   ", 2)
@@ -190,6 +167,8 @@ def shutter_control():
         led_stop.clear()
         update_file()
         if TF <= 0:
+            menu_stop.set()
+            menu_thread.join()
             lcd.clear()
             lcd.text("Captured " + str(Fnum) + " Photos!", 1)
             lcd.text("Total EXP: " + str(round((TFi * EL) / 60)) + "min", 2)
