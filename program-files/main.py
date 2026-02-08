@@ -109,8 +109,8 @@ def shutter_control():
     Display.static_menu("start")
     menu = DynamicMenu(menu_queue,
                                  menu_stop,
-                                 menu_items=["Option 0", "Option 1", "Option 2"],
-                                 submenu_items=[["Sub0 Op0", "Sub0 Op1"], ["Sub1 Op0", "Sub1 Op1", "Sub1 Op2"], []]
+                                 menu_items=["Pause", "Info", "Power"],
+                                 submenu_items=[[], ["Capture Settings", "Latest Checkup"], ["Restart", "Hard Restart", "Shutdown System"]]
                                  )
     menu_thread = threading.Thread(target=menu.run)
     joystick_thread = threading.Thread(target=joystick.run, daemon=True)
@@ -149,8 +149,10 @@ def shutter_control():
                 menu_active = True
             if value == "exit":
                 refresh = True
-            elif value != "":
                 menu_active = False
+            print(value)
+            #elif value != "":
+            #    menu_active = False
             if (not menu_active) and refresh:
                 lcd.clear()
                 Display.time_status_bar(mode, time_left, status_label)
