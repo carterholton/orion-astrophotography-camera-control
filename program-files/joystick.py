@@ -97,7 +97,7 @@ class Joystick:
         except:
             return ["center", 1]
         print("x =", x, ", y =", y)
-        if 400 < x < 600 and 400 < y < 600:
+        if 400 < x < 600 and 350 < y < 600:
             pos = "center"
         elif x < 400:
             pos = "left"

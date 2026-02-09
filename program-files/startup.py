@@ -37,7 +37,7 @@ class Startup:
         lcd.clear()
 
     def run(self):
-        self.Display.boot_screen()
+        #self.Display.boot_screen()
         time.sleep(1)
         lcd.text("Smart", 4)
         time.sleep(0.5)

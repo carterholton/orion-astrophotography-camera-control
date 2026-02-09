@@ -78,3 +78,5 @@ log: 2026-01-19 10:54:40,027 | ERROR | init.py:53 | 2839 >>>
 NoneType: None
 log: 2026-02-07 18:29:42,967 | ERROR | camera.py:45 | 844 >>> 
 NoneType: None
+log: 2026-02-08 18:33:57,532 | ERROR | camera.py:45 | 4923 >>> 
+NoneType: None

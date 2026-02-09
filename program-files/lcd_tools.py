@@ -179,7 +179,6 @@ class DynamicMenu():
 
 
     def update_menu(self, pos):
-        #print(self.level)
         state = "none"
         if pos[1] == '0':
             state = self.forward()
@@ -212,19 +211,25 @@ class DynamicMenu():
         self.level = 0
 
     def open(self):
-        self.show_menu()
-        state = "none"
-        while state == 'none':
-            joystick = shared_state.get_joystick_state()
-            pos = [joystick["pos"], joystick["button"]]
-            while (pos == ['center', '1']) and (state == 'none'):
+        while not self.menu_stop.is_set():
+            if shared_state.get_menu_state() == "inactive":
+                print("inactive")
+                time.sleep(0.001)
+                continue
+            state = "none"
+            self.show_menu()
+            while state == 'none':
                 joystick = shared_state.get_joystick_state()
                 pos = [joystick["pos"], joystick["button"]]
-                state = self.update_menu(pos)
-                if self.menu_stop.is_set():
-                    return
-        shared_state.set_menu_state(state)
-        return True
+                print("in menu thread:", pos)
+                while (pos == ['center', '1']) and (state == 'none'):
+                    joystick = shared_state.get_joystick_state()
+                    pos = [joystick["pos"], joystick["button"]]
+                    state = self.update_menu(pos)
+                    time.sleep(0.001)
+            print(state)
+            shared_state.set_menu_state(state)
+            time.sleep(1)
 
     def run(self):
         while not self.menu_stop.is_set():

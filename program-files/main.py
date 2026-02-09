@@ -112,7 +112,8 @@ def shutter_control():
                                  menu_items=["Pause", "Info", "Power"],
                                  submenu_items=[[], ["Capture Settings", "Latest Checkup"], ["Restart", "Hard Restart", "Shutdown System"]]
                                  )
-    menu_thread = threading.Thread(target=menu.run)
+    #menu_thread = threading.Thread(target=menu.run)
+    menu_thread = threading.Thread(target=menu.open)
     joystick_thread = threading.Thread(target=joystick.run, daemon=True)
 
     while not ready:
@@ -123,9 +124,13 @@ def shutter_control():
         if pos[0] == 'down' and pos[1] == '0':
             lcd.clear()
             main()
+    #menu_thread.start()
+    shared_state.set_menu_state("inactive")
     menu_thread.start()
     menu_active = False
     joystick_thread.start()
+    status_light = threading.Thread(target=Led.status_light, args=("0", EL), daemon=True)
+    status_light.start()
 
     while active:
         time_left = round((TF * (EL + IN)) / 60)
@@ -139,11 +144,33 @@ def shutter_control():
         status = get_status()
         status_label = status_id[status]
         camera.capture_image(EL, IN)
-        status_light = threading.Thread(target=Led.status_light, args=("0", EL), daemon=True)
-        status_light.start()
         refresh = True
         while elapsed_time < (EL + IN):
             elapsed_time = time.perf_counter() - start_time
+            js = shared_state.get_joystick_state()
+            pos = [js["pos"], js["button"]]
+            if (pos == ["left", "0"]) and not menu_active:
+                print("entering menu...")
+                menu_active = True
+                shared_state.set_menu_state("active")
+            if (not menu_active) and refresh:
+                lcd.clear()
+                Display.time_status_bar(mode, time_left, status_label)
+                Display.progress_bar(TF, TFi, Fnum, line=4)
+                refresh = False
+            if not menu_active:
+                time.sleep(0.001)
+                continue
+            value = shared_state.get_menu_state()
+            print("received value:", value)
+            match value:
+                case "exit":
+                    print("handling exit")
+                    shared_state.set_menu_state("inactive")
+                    menu_active = False
+                    refresh = True
+            time.sleep(0.001)
+            """
             value = shared_state.get_menu_state()
             if value == "active":
                 menu_active = True
@@ -153,12 +180,7 @@ def shutter_control():
             print(value)
             #elif value != "":
             #    menu_active = False
-            if (not menu_active) and refresh:
-                lcd.clear()
-                Display.time_status_bar(mode, time_left, status_label)
-                Display.progress_bar(TF, TFi, Fnum, line=4)
-                refresh = False
-            time.sleep(0.001)
+            """
 
         """
         if pos[0] == 'down':
@@ -181,8 +203,6 @@ def shutter_control():
         led_stop.clear()
         update_file()
         if TF <= 0:
-            menu_stop.set()
-            menu_thread.join()
             lcd.clear()
             lcd.text("Captured " + str(Fnum) + " Photos!", 1)
             lcd.text("Total EXP: " + str(round((TFi * EL) / 60)) + "min", 2)
